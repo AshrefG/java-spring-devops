@@ -1,0 +1,40 @@
+---
+- hosts: kubernetes_master
+  become: yes
+  vars:
+    current_color: "blue"
+    new_color: "green"
+
+  tasks:
+    - name: Deploy new version
+      k8s:
+        state: present
+        definition: "{{ lookup('file', 'k8s/deployment-{{ new_color }}.yaml') | from_yaml }}"
+
+    - name: Check if new deployment is ready
+      k8s_info:
+        kind: Deployment
+        name: java-app-{{ new_color }}
+      register: deployment_status
+      until: deployment_status.resources[0].status.readyReplicas == deployment_status.resources[0].status.replicas
+      retries: 10
+      delay: 10
+
+    - name: Switch traffic to new deployment
+      k8s:
+        state: present
+        definition: "{{ lookup('file', 'k8s/service.yaml') | from_yaml }}"
+      vars:
+        definition:
+          spec:
+            selector:
+              version: "{{ new_color }}"
+
+    - name: Scale down old deployment
+      k8s:
+        state: present
+        definition: "{{ lookup('file', 'k8s/deployment-{{ current_color }}.yaml') | from_yaml }}"
+      vars:
+        definition:
+          spec:
+            replicas: 0

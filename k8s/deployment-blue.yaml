@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-app-blue
+  labels:
+    app: java-app
+    version: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: java-app
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: java-app
+        version: blue
+    spec:
+      containers:
+        - name: java-app
+          image: your-registry/java-spring-devops:1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_VERSION
+              value: "blue-1.0"
