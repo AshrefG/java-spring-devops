@@ -1,6 +1,9 @@
 pipeline {
     agent any
     
+    tools {
+        maven 'maven-3.9'  // This must match the name you gave in Global Tool Configuration
+    }
     environment {
         DOCKER_REGISTRY = 'docker-hub-repo'
         KUBE_CONFIG = credentials('kubeconfig')
