@@ -70,11 +70,11 @@ pipeline {
     }
     
     post {
-        failure {
-            slackSend channel: '#devops', message: "Build Failed: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
-        }
-        success {
-            slackSend channel: '#devops', message: "Build Succeeded: ${env.JOB_NAME} ${env.BUILD_NUMBER}"
-        }
+    failure {
+        echo "Build Failed: ${env.JOB_NAME} ${env.BUILD_NUMBER} (${env.BUILD_URL})"
     }
+    success {
+        echo "Build Succeeded: ${env.JOB_NAME} ${env.BUILD_NUMBER} (${env.BUILD_URL})"
+    }
+}
 }
