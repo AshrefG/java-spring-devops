@@ -66,16 +66,20 @@ pipeline {
 	}
 
 	stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    ansiblePlaybook(
-                        playbook: 'ansible/playbook.yaml',
-                        inventory: 'ansible/inventory',
-                        extras: "-e 'image_version=${env.VERSION}'"
-                    )
-                }
-            }
-        }
+	    steps {
+		script {
+		    // Install Ansible if missing (optional)
+		    sh '''
+		        if ! command -v ansible-playbook &> /dev/null; then
+		            echo "Installing Ansible..."
+		            sudo apt update && sudo apt install -y ansible || sudo yum install -y ansible
+		        fi
+		    '''
+		    // Run playbook
+		    sh 'ansible-playbook ansible/playbook.yaml -i ansible/inventory -e "image_version=${env.VERSION}"'
+		}
+	    }
+	}
     }
     
     post {
