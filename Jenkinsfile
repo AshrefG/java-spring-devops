@@ -15,7 +15,7 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/AshrefG/java-spring-devops.git'
                 script {
-                    env.VERSION = readMavenPom().getVersion()
+                    env.VERSION = sh(script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout", returnStdout: true).trim()
                 }
             }
         }
