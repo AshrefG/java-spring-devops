@@ -34,21 +34,18 @@ pipeline {
         }
         
         stage('Build Docker Image') {
-            steps {
-                script {
-                    docker.build("${env.DOCKER_IMAGE}:${env.VERSION}")
-                }
-            }
-        }
-        
-        stage('Push Docker Image') {
 	    steps {
 		script {
-		    // Use explicit Docker Hub registry URL + credentials
+		    docker.build("ashrefg/project_pipeline:${env.VERSION}")
+		}
+	    }
+	}
+
+	stage('Push Docker Image') {
+	    steps {
+		script {
 		    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
-		        // Push with lowercase tags (Docker Hub rejects uppercase)
-		        def tag = env.VERSION.toLowerCase()
-		        docker.image("${env.DOCKER_IMAGE}:${tag}").push()
+		        docker.image("ashrefg/project_pipeline:${env.VERSION}").push()
 		    }
 		}
 	    }
