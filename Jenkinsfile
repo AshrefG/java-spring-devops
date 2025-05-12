@@ -36,7 +36,9 @@ pipeline {
         stage('Build Docker Image') {
 	    steps {
 		script {
-		    docker.build("ashrefg/project_pipeline:${env.VERSION}")
+		    // Convert version to lowercase for Docker Hub compatibility
+		    def dockerTag = env.VERSION.toLowerCase()
+		    docker.build("ashrefg/project_pipeline:${dockerTag}")
 		}
 	    }
 	}
@@ -44,8 +46,9 @@ pipeline {
 	stage('Push Docker Image') {
 	    steps {
 		script {
+		    def dockerTag = env.VERSION.toLowerCase()
 		    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
-		        docker.image("ashrefg/project_pipeline:${env.VERSION}").push()
+		        docker.image("ashrefg/project_pipeline:${dockerTag}").push()
 		    }
 		}
 	    }
