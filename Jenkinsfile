@@ -6,7 +6,8 @@ pipeline {
     }
     
     environment {
-        DOCKER_REGISTRY = 'docker-hub-repo'
+        // 👇 Updated with your Docker Hub repo path
+        DOCKER_IMAGE = 'ashrefg/project_pipeline'  // Format: <dockerhub-username>/<repo-name>
         KUBE_CONFIG = credentials('kubeconfig')
     }
     
@@ -35,7 +36,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${env.DOCKER_REGISTRY}/java-spring-devops:${env.VERSION}")
+                    docker.build("${env.DOCKER_IMAGE}:${env.VERSION}")
                 }
             }
         }
@@ -43,8 +44,9 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry("https://${env.DOCKER_REGISTRY}", 'docker-creds') {
-                        docker.image("${env.DOCKER_REGISTRY}/java-spring-devops:${env.VERSION}").push()
+                    // 👇 Updated registry URL + your Jenkins credentials ID
+                    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
+                        docker.image("${env.DOCKER_IMAGE}:${env.VERSION}").push()
                     }
                 }
             }
