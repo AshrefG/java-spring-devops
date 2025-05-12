@@ -41,27 +41,26 @@ pipeline {
 	    }
 	}
 
+	stage('Build Docker Image') {
+	    steps {
+		script {
+		    // Convert version to lowercase for Docker Hub compatibility
+		    def dockerTag = env.VERSION.toLowerCase()
+		    docker.build("ashrefg/project_pipeline:${dockerTag}")
+		}
+	    }
+	}
+
 	stage('Push Docker Image') {
 	    steps {
 		script {
+		    def dockerTag = env.VERSION.toLowerCase()
 		    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
-		        docker.image("ashrefg/project_pipeline:${env.VERSION}").push()
+		        docker.image("ashrefg/project_pipeline:${dockerTag}").push()
 		    }
 		}
 	    }
 	}
-        
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    ansiblePlaybook(
-                        playbook: 'ansible/playbook.yaml',
-                        inventory: 'ansible/inventory',
-                        extras: "-e 'image_version=${env.VERSION}'"
-                    )
-                }
-            }
-        }
     }
     
     post {
