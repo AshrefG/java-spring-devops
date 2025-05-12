@@ -42,15 +42,17 @@ pipeline {
         }
         
         stage('Push Docker Image') {
-            steps {
-                script {
-                    // 👇 Updated registry URL + your Jenkins credentials ID
-                    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
-                        docker.image("${env.DOCKER_IMAGE}:${env.VERSION}").push()
-                    }
-                }
-            }
-        }
+	    steps {
+		script {
+		    // Use explicit Docker Hub registry URL + credentials
+		    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
+		        // Push with lowercase tags (Docker Hub rejects uppercase)
+		        def tag = env.VERSION.toLowerCase()
+		        docker.image("${env.DOCKER_IMAGE}:${tag}").push()
+		    }
+		}
+	    }
+	}
         
         stage('Deploy to Kubernetes') {
             steps {
