@@ -46,9 +46,20 @@ pipeline {
 	stage('Push Docker Image') {
 	    steps {
 		script {
+		    // Ensure lowercase tag
 		    def dockerTag = env.VERSION.toLowerCase()
-		    docker.withRegistry('https://docker.io', 'docker-hub-repo') {
-		        docker.image("ashrefg/project_pipeline:${dockerTag}").push()
+		    
+		    // Log in fresh (avoid cached creds)
+		    withCredentials([usernamePassword(
+		        credentialsId: 'docker-hub-repo',
+		        usernameVariable: 'DOCKER_USER',
+		        passwordVariable: 'DOCKER_PASS'
+		    )]) {
+		        sh """
+		            docker logout docker.io
+		            echo "\${DOCKER_PASS}" | docker login -u "\${DOCKER_USER}" --password-stdin docker.io
+		            docker push ashrefg/project_pipeline:${dockerTag}
+		        """
 		    }
 		}
 	    }
