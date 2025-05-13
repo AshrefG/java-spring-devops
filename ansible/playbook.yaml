@@ -1,12 +1,13 @@
 ---
 - hosts: localhost
   connection: local
-  become: yes
+  become: false
   vars:
     current_color: "blue"
     new_color: "green"
     kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
     VERSION: "{{ image_version | default('latest') }}"
+    minikube_ip: "{{ lookup('env', 'MINIKUBE_IP') | default('localhost', true) }}"
 
   tasks:
     - name: Verify kubectl access
@@ -18,25 +19,46 @@
     - name: Deploy {{ new_color }} version
       k8s:
         state: present
-        definition: "{{ lookup('template', 'k8s/deployment-{{ new_color }}.yaml.j2') }}"
+        definition: "{{ lookup('template', '../k8s/deployment-{{ new_color }}.yaml.j2') }}"
+        namespace: default
         kubeconfig: "{{ kubeconfig }}"
+      register: deployment_result
 
-    - name: Check if new deployment is ready
+    - name: Debug deployment result
+      debug:
+        var: deployment_result
+
+    - name: Wait for deployment rollout (Primary Method)
       k8s_info:
         kind: Deployment
-        name: java-app-{{ new_color }}
+        name: "java-app-{{ new_color }}"
+        namespace: default
         kubeconfig: "{{ kubeconfig }}"
       register: deployment_status
       until: >
-        deployment_status.resources[0].status.readyReplicas == 
-        deployment_status.resources[0].status.replicas
-      retries: 10
-      delay: 10
+        deployment_status.resources|length > 0 and
+        deployment_status.resources[0].status.get('readyReplicas', 0) == 
+        deployment_status.resources[0].spec.replicas
+      retries: 20
+      delay: 5
+
+    - name: Alternative rollout check (Fallback)
+      command: >
+        kubectl rollout status deployment/java-app-{{ new_color }} -n default
+        --timeout=120s
+      register: rollout_status
+      when: deployment_status.resources|length == 0 or
+            deployment_status.resources[0].status.get('readyReplicas', 0) != 
+            deployment_status.resources[0].spec.replicas
+      until: rollout_status.rc == 0
+      retries: 5
+      delay: 5
 
     - name: Switch traffic to new deployment
       k8s:
         state: present
-        definition: "{{ lookup('file', 'k8s/service.yaml') | from_yaml }}"
+        definition: "{{ lookup('file', '../k8s/service.yaml') | from_yaml }}"
+        namespace: default
         kubeconfig: "{{ kubeconfig }}"
       vars:
         definition:
@@ -47,7 +69,8 @@
     - name: Scale down old deployment
       k8s:
         state: present
-        definition: "{{ lookup('template', 'k8s/deployment-{{ current_color }}.yaml.j2') }}"
+        definition: "{{ lookup('template', '../k8s/deployment-{{ current_color }}.yaml.j2') }}"
+        namespace: default
         kubeconfig: "{{ kubeconfig }}"
       vars:
         definition:
@@ -58,8 +81,18 @@
       uri:
         url: "http://{{ minikube_ip }}/"
         return_content: yes
+        status_code: 200
       register: service_test
       until: "'Hello from Spring Boot' in service_test.content"
-      retries: 5
+      retries: 10
       delay: 5
       ignore_errors: yes
+
+    - name: Show final deployment status
+      command: kubectl get deployments,pods,svc -n default -l app=java-app
+      register: final_status
+      changed_when: false
+
+    - name: Display final status
+      debug:
+        var: final_status.stdout_lines

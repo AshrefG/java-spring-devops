@@ -66,11 +66,17 @@ pipeline {
         stage('Deploy to k8s') {
 	    steps {
 		withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-		    ansiblePlaybook(
-		        playbook: 'ansible/playbook.yaml',
-		        inventory: 'ansible/inventory',
-		        extras: '-e "minikube_ip=$(minikube ip)"'
-		    )
+		    script {
+		        // Install required Python packages
+		        sh 'pip3 install kubernetes ansible'
+		        
+		        // Run the playbook
+		        ansiblePlaybook(
+		            playbook: 'ansible/playbook.yaml',
+		            inventory: 'ansible/inventory',
+		            extras: '-e "minikube_ip=$(minikube ip)"'
+		        )
+		    }
 		}
 	    }
 	}
