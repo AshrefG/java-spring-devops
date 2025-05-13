@@ -18,10 +18,10 @@ spec:
         version: green
     spec:
       containers:
-        - name: java-app
-          image: your-registry/java-spring-devops:1.0
-          ports:
-            - containerPort: 8080
-          env:
-            - name: APP_VERSION
-              value: "green-1.0"
+      - name: java-app
+        image: ashrefg/project_pipeline:{{ VERSION }}
+        ports:
+        - containerPort: 8080
+        env:
+        - name: APP_VERSION
+          value: "green-${VERSION}"

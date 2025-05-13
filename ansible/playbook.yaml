@@ -1,22 +1,35 @@
 ---
-- hosts: kubernetes_master
+- hosts: localhost
+  connection: local
   become: yes
   vars:
     current_color: "blue"
     new_color: "green"
+    kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
+    VERSION: "{{ image_version | default('latest') }}"
 
   tasks:
-    - name: Deploy new version
+    - name: Verify kubectl access
+      command: kubectl cluster-info
+      register: cluster_info
+      changed_when: false
+      failed_when: cluster_info.rc != 0
+
+    - name: Deploy {{ new_color }} version
       k8s:
         state: present
-        definition: "{{ lookup('file', 'k8s/deployment-{{ new_color }}.yaml') | from_yaml }}"
+        definition: "{{ lookup('template', 'k8s/deployment-{{ new_color }}.yaml.j2') }}"
+        kubeconfig: "{{ kubeconfig }}"
 
     - name: Check if new deployment is ready
       k8s_info:
         kind: Deployment
         name: java-app-{{ new_color }}
+        kubeconfig: "{{ kubeconfig }}"
       register: deployment_status
-      until: deployment_status.resources[0].status.readyReplicas == deployment_status.resources[0].status.replicas
+      until: >
+        deployment_status.resources[0].status.readyReplicas == 
+        deployment_status.resources[0].status.replicas
       retries: 10
       delay: 10
 
@@ -24,6 +37,7 @@
       k8s:
         state: present
         definition: "{{ lookup('file', 'k8s/service.yaml') | from_yaml }}"
+        kubeconfig: "{{ kubeconfig }}"
       vars:
         definition:
           spec:
@@ -33,8 +47,19 @@
     - name: Scale down old deployment
       k8s:
         state: present
-        definition: "{{ lookup('file', 'k8s/deployment-{{ current_color }}.yaml') | from_yaml }}"
+        definition: "{{ lookup('template', 'k8s/deployment-{{ current_color }}.yaml.j2') }}"
+        kubeconfig: "{{ kubeconfig }}"
       vars:
         definition:
           spec:
             replicas: 0
+
+    - name: Verify service endpoint
+      uri:
+        url: "http://{{ minikube_ip }}/"
+        return_content: yes
+      register: service_test
+      until: "'Hello from Spring Boot' in service_test.content"
+      retries: 5
+      delay: 5
+      ignore_errors: yes

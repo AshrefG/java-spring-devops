@@ -63,12 +63,14 @@ pipeline {
 	    }
 	}
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to k8s') {
 	    steps {
-		script {
-		    sh """
-		    ansible-playbook ansible/playbook.yaml -i ansible/inventory -e "image_version=${env.VERSION}"
-		    """
+		withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+		    ansiblePlaybook(
+		        playbook: 'ansible/playbook.yaml',
+		        inventory: 'ansible/inventory',
+		        extras: '-e "minikube_ip=$(minikube ip)"'
+		    )
 		}
 	    }
 	}
