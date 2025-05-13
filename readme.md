@@ -114,7 +114,6 @@ Our deployment process:
 4. Blue remains as fallback option
 
 ## Troubleshooting
-![Troubleshooting Guide](/images/troubleshooting-cheatsheet.png)
 
 Common issues and solutions:
 
