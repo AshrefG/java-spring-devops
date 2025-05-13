@@ -64,12 +64,14 @@ pipeline {
 	}
 
         stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    sh 'ansible-playbook ansible/playbook.yaml -i ansible/inventory -e "image_version=${env.VERSION}"'
-                }
-            }
-        }
+	    steps {
+		script {
+		    sh """
+		    ansible-playbook ansible/playbook.yaml -i ansible/inventory -e "image_version=${env.VERSION}"
+		    """
+		}
+	    }
+	}
     }
 
     post {
