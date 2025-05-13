@@ -51,10 +51,11 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
                         sh """
-                            docker logout docker.io
-                            echo "\${DOCKER_PASS}" | docker login -u "\${DOCKER_USER}" --password-stdin docker.io
-                            docker push ashrefg/project_pipeline:${dockerTag}
-                        """
+			    #!/bin/bash
+			    docker logout docker.io
+			    echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin docker.io
+			    docker push ashrefg/project_pipeline:${dockerTag}
+			"""
                     }
                 }
             }
